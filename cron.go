@@ -1,9 +1,10 @@
 // Package cron implements a cron spec parser and runner.
-package cron // import "gopkg.in/robfig/cron.v2"
+package cron
 
 import (
 	"sort"
 	"time"
+	"fmt"
 )
 
 // Cron keeps track of any number of entries, invoking the associated func as
@@ -32,7 +33,7 @@ type Schedule interface {
 }
 
 // EntryID identifies an entry within a Cron instance
-type EntryID int
+type EntryID string
 
 // Entry consists of a schedule and the func to execute on that schedule.
 type Entry struct {
@@ -55,7 +56,7 @@ type Entry struct {
 }
 
 // Valid returns true if this is not the zero entry.
-func (e Entry) Valid() bool { return e.ID != 0 }
+func (e Entry) Valid() bool { return e.ID != "" }
 
 // byTime is a wrapper for sorting the entry array by time
 // (with zero time at the end).
@@ -94,24 +95,25 @@ type FuncJob func()
 func (f FuncJob) Run() { f() }
 
 // AddFunc adds a func to the Cron to be run on the given schedule.
-func (c *Cron) AddFunc(spec string, cmd func()) (EntryID, error) {
-	return c.AddJob(spec, FuncJob(cmd))
+func (c *Cron) AddFunc(ID, spec string, cmd func()) (EntryID, error) {
+	return c.AddJob(ID, spec, FuncJob(cmd))
 }
 
 // AddJob adds a Job to the Cron to be run on the given schedule.
-func (c *Cron) AddJob(spec string, cmd Job) (EntryID, error) {
+func (c *Cron) AddJob(ID, spec string, cmd Job) (EntryID, error) {
 	schedule, err := Parse(spec)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return c.Schedule(schedule, cmd), nil
+	return c.Schedule(ID, schedule, cmd), nil
 }
 
 // Schedule adds a Job to the Cron to be run on the given schedule.
-func (c *Cron) Schedule(schedule Schedule, cmd Job) EntryID {
-	c.nextID++
+func (c *Cron) Schedule(ID string, schedule Schedule, cmd Job) EntryID {
+	//c.nextID++
 	entry := &Entry{
-		ID:       c.nextID,
+		//ID:       c.nextID,
+		ID:       EntryID(ID),
 		Schedule: schedule,
 		Job:      cmd,
 	}
@@ -229,6 +231,7 @@ func (c *Cron) removeEntry(id EntryID) {
 	var entries []*Entry
 	for _, e := range c.entries {
 		if e.ID != id {
+			fmt.Println(id, e.ID, "======>", c.entries)
 			entries = append(entries, e)
 		}
 	}
